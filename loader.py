@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
 import json
 import cv2
 import os, random
@@ -10,10 +15,14 @@ from keras import backend as K
 import itertools
 import editdistance
 import json
+from AugData import AugData
+import copy
+
+augData = AugData()
 
 letters = " #'()+,-./:0123456789ABCDEFGHIJKLMNOPQRSTUVWXYabcdeghiklmnopqrstuvxyzÂÊÔàáâãèéêìíòóôõùúýăĐđĩũƠơưạảấầẩậắằẵặẻẽếềểễệỉịọỏốồổỗộớờởỡợụủỨứừửữựỳỵỷỹ"
 MAX_LEN = 70
-SIZE = 2560, 160
+SIZE = 2000, 106
 CHAR_DICT = len(letters) + 1
 
 def text_to_labels(text):
@@ -39,17 +48,16 @@ def decode_batch(out):
     return ret
 
 class VizCallback(keras.callbacks.Callback):
-    def __init__(self, sess, y_func, text_img_gen, text_size, num_display_words=6):
+    def __init__(self, y_func, text_img_gen, text_size, num_display_words=6):
         self.y_func = y_func
         self.text_img_gen = text_img_gen
         self.num_display_words = num_display_words
         self.text_size = text_size
-        self.sess = sess
 
     def show_edit_distance(self, num):
         num_left = num
         mean_norm_ed = 0.0
-        mean_ed = 0.0
+        mean_ed = 0.0  
         while num_left > 0:
             word_batch = next(self.text_img_gen.next_batch())[0]
             num_proc = min(word_batch['the_inputs'].shape[0], num_left)
@@ -91,12 +99,13 @@ class TextImageGenerator:
                  batch_size, downsample_factor, idxs, training=True, max_text_len=9, n_eraser=5):
         self.img_h = img_h
         self.img_w = img_w
+        self.numAug = 1
         self.batch_size = batch_size
         self.max_text_len = max_text_len
         self.idxs = idxs
         self.downsample_factor = downsample_factor
         self.img_dirpath = img_dirpath                  # image dir path
-        self.labels= json.load(open(labels_path)) if labels_path != None else None
+        self.labels= json.load(open(labels_path), encoding='utf8') if labels_path != None else None
         self.img_dir = os.listdir(self.img_dirpath)     # images list
         if self.idxs is not None:
             self.img_dir = [self.img_dir[idx] for idx in self.idxs]
@@ -105,26 +114,48 @@ class TextImageGenerator:
         self.indexes = list(range(self.n))
         self.cur_index = 0
         self.imgs = np.zeros((self.n, self.img_h, self.img_w, 3), dtype=np.float16)
+        self.augImgs = np.zeros((self.n * self.numAug, self.img_h, self.img_w, 3), dtype=np.float16)
+        self.augLabels = []
         self.training = training
         self.texts = []
 
     def build_data(self):
         print(self.n, " Image Loading start... ", self.img_dirpath)
+        iAug = 0
         for i, img_file in enumerate(self.img_dir):
             img = image.load_img(self.img_dirpath + img_file, target_size=SIZE[::-1])
             img = image.img_to_array(img)
+            imgMat = copy.deepcopy(img).astype(np.uint8)
             img = preprocess_input(img).astype(np.float16)
             self.imgs[i] = img
+            for j in range(self.numAug):
+                img = augData.augmentData([imgMat])[0]
+                img = preprocess_input(img).astype(np.float16)
+                self.augImgs[iAug] = img
+                iAug += 1
+
             if self.labels != None: 
                 self.texts.append(self.labels[img_file])
+
+                for j in range(self.numAug):
+                    self.augLabels.append(self.labels[img_file])
             else:
                 #valid mode
                 self.texts.append('')
+                for j in range(self.numAug):
+                    self.augLabels.append('')
+        
+        self.imgs = np.concatenate((self.imgs, self.augImgs))
+        self.texts += self.augLabels
+        assert self.imgs.shape[0] == len(self.texts)
+        self.n = len(self.texts)
+        self.indexes = list(range(len(self.texts)))
         print("Image Loading finish...")
 
     def next_sample(self):
         self.cur_index += 1
-        if self.cur_index >= self.n:
+        # if self.cur_index >= self.n:
+        if self.cur_index >= len(self.texts):
             self.cur_index = 0
             random.shuffle(self.indexes)
         return self.imgs[self.indexes[self.cur_index]].astype(np.float32), self.texts[self.indexes[self.cur_index]]

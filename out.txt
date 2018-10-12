@@ -1,0 +1,73 @@
+Sender: LSF System <openlava@fit07>
+Subject: Job 871850: <python crnn.py --batch_size=16 --train=/home/ndtuan/ocr_cinnamon/vietnamese_ocr/Dataset/ --finetune=1> Exited
+
+Job <python crnn.py --batch_size=16 --train=/home/ndtuan/ocr_cinnamon/vietnamese_ocr/Dataset/ --finetune=1> was submitted from host <fit06> by user <ndtuan>.
+Job was executed on host(s) <fit07>, in queue <gpu>, as user <ndtuan>.
+</home/ndtuan> was used as the home directory.
+</home/ndtuan/ocr_cinnamon/vietnamese_ocr> was used as the working directory.
+Started at Fri Oct 12 16:48:43 2018
+Results reported at Fri Oct 12 17:00:35 2018
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+python crnn.py --batch_size=16 --train=/home/ndtuan/ocr_cinnamon/vietnamese_ocr/Dataset/ --finetune=1
+------------------------------------------------------------
+
+Exited with exit code 1.
+
+Resource usage summary:
+
+    CPU time   :  10075.34 sec.
+    Max Memory :     41148 MB
+    Max Swap   :    137362 MB
+
+    Max Processes  :         3
+
+The output (if any) follows:
+
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to                     
+==================================================================================================
+the_inputs (InputLayer)         (None, 2560, 160, 3) 0                                            
+__________________________________________________________________________________________________
+vgg16 (Model)                   multiple             14714688    the_inputs[0][0]                 
+__________________________________________________________________________________________________
+reshape (Reshape)               (None, 80, 2560)     0           vgg16[1][0]                      
+__________________________________________________________________________________________________
+dense1 (Dense)                  (None, 80, 512)      1311232     reshape[0][0]                    
+__________________________________________________________________________________________________
+dropout_1 (Dropout)             (None, 80, 512)      0           dense1[0][0]                     
+__________________________________________________________________________________________________
+bidirectional_1 (Bidirectional) (None, 80, 1024)     4198400     dropout_1[0][0]                  
+__________________________________________________________________________________________________
+dense2 (Dense)                  (None, 80, 253)      259325      bidirectional_1[0][0]            
+__________________________________________________________________________________________________
+the_labels (InputLayer)         (None, 70)           0                                            
+__________________________________________________________________________________________________
+input_length (InputLayer)       (None, 1)            0                                            
+__________________________________________________________________________________________________
+label_length (InputLayer)       (None, 1)            0                                            
+__________________________________________________________________________________________________
+ctc (Lambda)                    (None, 1)            0           dense2[0][0]                     
+                                                                 the_labels[0][0]                 
+                                                                 input_length[0][0]               
+                                                                 label_length[0][0]               
+==================================================================================================
+Total params: 20,483,645
+Trainable params: 20,483,645
+Non-trainable params: 0
+__________________________________________________________________________________________________
+(1458, ' Image Loading start... ', '/home/ndtuan/ocr_cinnamon/vietnamese_ocr/Dataset/')
+Image Loading finish...
+(365, ' Image Loading start... ', '/home/ndtuan/ocr_cinnamon/vietnamese_ocr/Dataset/')
+Image Loading finish...
+load pretrain model
+Epoch 1/100
+
+
+PS:
+
+Read file <err.txt> for stderr output of this job.
+

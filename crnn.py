@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
 import os
 from sklearn.model_selection import KFold
 import keras
@@ -11,7 +16,7 @@ from keras.optimizers import Adadelta, Adam
 from keras.callbacks import EarlyStopping, LearningRateScheduler, ModelCheckpoint, TensorBoard, ReduceLROnPlateau
 from loader import TextImageGenerator, MAX_LEN, CHAR_DICT, SIZE, VizCallback, ctc_lambda_func
 import numpy as np
-import tensorflow as tf
+# import tensorflow as tf
 from keras import backend as K
 import argparse
 
@@ -44,26 +49,26 @@ def get_model(input_shape, training, finetune):
         return Model(inputs=[inputs, labels, input_length, label_length], outputs=loss_out), y_func
     else:
         return Model(inputs=[inputs], outputs=y_pred)
-
+ 
 def train_kfold(idx, kfold, datapath, labelpath,  epochs, batch_size, lr, finetune):
-    sess = tf.Session()
-    K.set_session(sess)
+    # sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
+    # K.set_session(sess)
 
-    model, y_func = get_model((*SIZE, 3), training=True, finetune=finetune)
+    model, y_func = get_model((SIZE[0], SIZE[1], 3), training=True, finetune=finetune)
     ada = Adam(lr=lr)
     model.compile(loss={'ctc': lambda y_true, y_pred: y_pred}, optimizer=ada)
 
     ## load data
     train_idx, valid_idx = kfold[idx]
-    train_generator = TextImageGenerator(datapath, labelpath, *SIZE, batch_size, 32, train_idx, True, MAX_LEN)
+    train_generator = TextImageGenerator(datapath, labelpath, SIZE[0], SIZE[1], batch_size, 32, train_idx, True, MAX_LEN)
     train_generator.build_data()
-    valid_generator  = TextImageGenerator(datapath, labelpath, *SIZE, batch_size, 32, valid_idx, False, MAX_LEN)
+    valid_generator  = TextImageGenerator(datapath, labelpath, SIZE[0], SIZE[1], batch_size, 32, valid_idx, False, MAX_LEN)
     valid_generator.build_data()
 
     ## callbacks
     weight_path = 'model/best_%d.h5' % idx
-    ckp = ModelCheckpoint(weight_path, monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=True)
-    vis = VizCallback(sess, y_func, valid_generator, len(valid_idx))
+    ckp = ModelCheckpoint(weight_path, monitor='val_loss', verbose=1, save_best_only=False, save_weights_only=True)
+    vis = VizCallback(y_func, valid_generator, len(valid_idx))
     earlystop = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=0, mode='min')
 
     if finetune:
@@ -88,8 +93,8 @@ def train(datapath, labelpath, epochs, batch_size, lr, finetune=False):
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--train", default='../data/ocr/preprocess/train/', type=str)
-    parser.add_argument("--label", default='../data/ocr/labels.json', type=str)
+    parser.add_argument("--train", default='Dataset', type=str)
+    parser.add_argument("--label", default='labels.json', type=str)
 
     parser.add_argument("--epochs", default=100, type=int)
     parser.add_argument('--batch_size', default=3, type=int)
@@ -98,7 +103,7 @@ if __name__=='__main__':
     parser.add_argument('--lr', default=0.001, type=float)
     args = parser.parse_args()
 
-    os.environ["CUDA_VISIBLE_DEVICES"]=str(args.device)
-
+    # os.environ["CUDA_VISIBLE_DEVICES"]=str/(args.device)
+    # get_model((SIZE[0], SIZE[1], 3), training=True, finetune=0)
     train(args.train, args.label, args.epochs, args.batch_size, args.lr, args.finetune)
     
